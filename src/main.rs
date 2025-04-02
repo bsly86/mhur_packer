@@ -3,6 +3,7 @@ use egui::CentralPanel;
 use std::process::Command;
 use std::fs;
 use std::path::Path;
+use std::env;
 
 
 struct HeroPak {
@@ -34,7 +35,24 @@ impl eframe::App for HeroPak {
                 ui.add_space(20.0);
 
                 if ui.button("Package Assets").clicked() {
-                    let output = Command::new("repak")
+
+                    let exe_dir = env::current_exe()
+                        .ok()
+                        .and_then(|path| path.parent().map(|p| p.to_path_buf()))
+                        .unwrap_or_else(|| Path::new(".").to_path_buf());
+
+
+                    let local_repak_path = exe_dir.join("repak.exe");
+
+  
+                    let repak_command = if local_repak_path.exists() {
+                        local_repak_path
+                    } else {
+                        Path::new("repak").to_path_buf() // Use global repak if local doesn't exist
+                    };
+
+
+                    let output = Command::new(repak_command)
                         .arg("pack")
                         .arg(&self.filepath)
                         .output();
