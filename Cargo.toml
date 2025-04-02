@@ -3,9 +3,19 @@ name = "MyHeroPak"
 version = "1.0.0"
 edition = "2024"
 
+[[bin]]
+name = "MyHeroPak"
+path = "src/main.rs"
+
+[[bin]]
+name = "updater"
+path = "src/updater.rs"
+
 [build-dependencies]
 cc = "1.0"
 
 [dependencies]
 eframe = "*"
 egui = "*"
+reqwest = { version = "0.12.15", features = ["json"]}
+tokio = {version = "1.44.1", features = ["full"]}
