@@ -3,7 +3,7 @@ use std::path::Path;
 use reqwest;
 use tokio;
 
-const GITHUB_RELEASE_URL: &str = "https://api.github.com/bsly86/mhur_packer/releases/latest/download/MyHeroPak.exe";
+const GITHUB_RELEASE_URL: &str = "https://github.com/bsly86/mhur_packer/releases/latest/download/MyHeroPak.exe";
 const HERO_PAK_EXE: &str = "MyHeroPak.exe";
 const BACKUP_EXE: &str = "MyHeroPak.exe.bak";
 
