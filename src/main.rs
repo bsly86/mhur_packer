@@ -1,5 +1,8 @@
 use eframe::*;
 use egui::CentralPanel;
+use egui::Layout;
+use egui::Direction;
+use egui::Vec2;
 use std::process::Command;
 use std::fs;
 use std::path::Path;
@@ -12,6 +15,38 @@ struct HeroPak {
     status_message: String,
 }
 
+impl HeroPak {
+    fn execute_repak(&mut self, command: &str, args: &[&str]) -> Result<String, String> {
+        let exe_dir = env::current_exe()
+            .ok()
+            .and_then(|path| path.parent().map(|p| p.to_path_buf()))
+            .unwrap_or_else(|| Path::new(".").to_path_buf());
+
+        let local_repak_path = exe_dir.join("repak.exe");
+        let repak_command = if local_repak_path.exists() {
+            local_repak_path
+        } else {
+            Path::new("repak").to_path_buf()
+        };
+
+        let mut cmd = Command::new(repak_command);
+        cmd.arg(command);
+        for arg in args {
+            cmd.arg(arg);
+        }
+
+        match cmd.output() {
+            Ok(output) => {
+                if output.status.success() {
+                    Ok(String::from_utf8_lossy(&output.stdout).to_string())
+                } else {
+                    Err(String::from_utf8_lossy(&output.stderr).to_string())
+                }
+            }
+            Err(e) => Err(e.to_string())
+        }
+    }
+}
 
 impl eframe::App for HeroPak {
     fn update(&mut self, ctx: &egui::Context, _frame: &mut Frame) {
@@ -34,85 +69,78 @@ impl eframe::App for HeroPak {
 
                 ui.add_space(20.0);
 
-                if ui.button("Package Assets").clicked() {
+                ui.columns(2, |columns| {
+                    columns[0].allocate_ui_with_layout(
+                        Vec2::ZERO,
+                        Layout::centered_and_justified(Direction::RightToLeft),
+                        |ui| {
+                            if ui.button("Package Assets").clicked() {
+                                let filepath_clone = self.filepath.clone();
+                                match self.execute_repak("pack", &[&filepath_clone]) {
+                                    Ok(output) => {
+                                        let input_folder_name = Path::new(&self.filepath)
+                                            .file_name()
+                                            .unwrap_or_default()
+                                            .to_string_lossy()
+                                            .to_string();
+                                        let original_pak_path = format!("{}.pak", &input_folder_name);
+                                        let new_pak_path = format!("X{}-WindowsNoEditor_P.pak", &self.package_name);
 
-                    let exe_dir = env::current_exe()
-                        .ok()
-                        .and_then(|path| path.parent().map(|p| p.to_path_buf()))
-                        .unwrap_or_else(|| Path::new(".").to_path_buf());
-
-
-                    let local_repak_path = exe_dir.join("repak.exe");
-
-  
-                    let repak_command = if local_repak_path.exists() {
-                        local_repak_path
-                    } else {
-                        Path::new("repak").to_path_buf() // Use global repak if local doesn't exist
-                    };
-
-
-                    let output = Command::new(repak_command)
-                        .arg("pack")
-                        .arg(&self.filepath)
-                        .output();
-
-                    match output {
-                        Ok(output) => {
-                            if output.status.success() {
-                                let input_folder_name = Path::new(&self.filepath)
-                                    .file_name()
-                                    .unwrap_or_default()
-                                    .to_string_lossy()
-                                    .to_string();
-                                let original_pak_path = format!("{}.pak", &input_folder_name);
-
-                                let new_pak_path = format!("X{}-WindowsNoEditor_P.pak", &self.package_name);
-                                if let Err(e) = fs::rename(&original_pak_path, &new_pak_path) {
-                                    self.status_message = format!(
-                                        "Assets packaged, but failed to rename file: {}", e
-                                    );
-                                    return;
+                                        if let Err(e) = fs::rename(&original_pak_path, &new_pak_path) {
+                                            self.status_message = format!("Assets packaged, but failed to rename file:\n{}", e);
+                                        } else {
+                                            self.status_message = format!("Packaging successful:\n{}", output);
+                                        }
+                                    }
+                                    Err(e) => self.status_message = format!("Packaging failed:\n{}", e),
                                 }
-                                
-                                self.status_message = format!(
-                                    "Assets Packaged Successfully! Output:\n{}",
-                                    String::from_utf8_lossy(&output.stdout)
-                                );
-                            } else {
-                                self.status_message = format!(
-                                    "Failed to Package Assets! Error:\n{}",
-                                    String::from_utf8_lossy(&output.stderr)
-                                );
                             }
-                        }
-                        Err(e) => {
-                            self.status_message = format!("Failed to Package Assets! Error: {}", e);
-                        }
-                    }
-                }
+                        },
+                    );
+
+                    columns[1].allocate_ui_with_layout(
+                        Vec2::ZERO,
+                        Layout::centered_and_justified(Direction::LeftToRight),
+                        |ui| {
+                            if ui.button("List Assets").clicked() {
+                                let pak_name = format!("X{}-WindowsNoEditor_P.pak", &self.package_name);
+                                match self.execute_repak("list", &[&pak_name]) {
+                                    Ok(output) => self.status_message = format!("List of Assets\n{}", output),
+                                    Err(e) => self.status_message = format!("Failed to list assets:\n{}", e),
+                                }
+                            }
+                        },
+                    );
+                });
 
                 ui.add_space(20.0);
 
                 if !self.status_message.is_empty() {
                     ui.label(&self.status_message);
-                }
+                    }
+                });
             });
-        });
+        }
     }
-}
 
 fn main() -> eframe::Result<(), eframe::Error> {
-    
+
+
+    let options = eframe::NativeOptions {
+        viewport: egui::ViewportBuilder::default().with_inner_size([600.0, 300.0]),
+        ..Default::default()
+    };
+
     run_native(
         "HeroPak", 
-        NativeOptions::default(), 
+        options, 
         Box::new(|_cc| {
             Ok(Box::new(HeroPak {
                 filepath: String::new(),
                 package_name: String::new(),
                 status_message: String::new()
             }))
+
         })
     )
 }
