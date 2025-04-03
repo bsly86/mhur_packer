@@ -13,6 +13,7 @@ struct HeroPak {
     filepath: String,
     package_name: String,
     status_message: String,
+    modsfolder: String
 }
 
 impl HeroPak {
@@ -63,13 +64,18 @@ impl eframe::App for HeroPak {
 
                     ui.add_space(10.0);
 
-                    ui.label("Package Name:");
+                    ui.label("Package Name (OPTIONAL):");
                     ui.text_edit_singleline(&mut self.package_name);
+
+                    ui.add_space(10.0);
+
+                    ui.label("Path to Mods Folder (OPTIONAL):");
+                    ui.text_edit_singleline(&mut self.modsfolder);
                 });
 
                 ui.add_space(20.0);
 
-                ui.columns(2, |columns| {
+                ui.columns(3, |columns| {
                     columns[0].allocate_ui_with_layout(
                         Vec2::ZERO,
                         Layout::centered_and_justified(Direction::RightToLeft),
@@ -111,6 +117,37 @@ impl eframe::App for HeroPak {
                             }
                         },
                     );
+
+                    columns[2].allocate_ui_with_layout(
+                        Vec2::ZERO,
+                        Layout::centered_and_justified(Direction::LeftToRight),
+                        |ui|{
+                            if ui.button("Move Pak to Mods folder").clicked() {
+                                let pak_name = format!("X{}-WindowsNoEditor_P.pak", &self.package_name);
+                                let source_path = Path::new(&pak_name);
+                                let destination_path = Path::new(&self.modsfolder).join(&pak_name);
+
+
+                                
+                                match fs::copy(source_path, &destination_path) {
+                                    Ok(_) => {
+                                        match fs::remove_file(source_path) {
+                                            Ok(_) => {
+                                                self.status_message = format!("Pak moved to Mods folder:\n{}", destination_path.display());
+                                            }
+                                            Err(e) => {
+                                                self.status_message = format!("Copied pak but failed to remove original:\n{}", e);
+                                            }
+                                        }
+                                        
+                                    }
+                                    Err(e) => {
+                                        self.status_message = format!("Failed to move pak:\n{}", e);
+                                    }
+                                }
+                            }
+                        }
+                    )
                 });
 
                 ui.add_space(20.0);
@@ -138,7 +175,8 @@ fn main() -> eframe::Result<(), eframe::Error> {
             Ok(Box::new(HeroPak {
                 filepath: String::new(),
                 package_name: String::new(),
-                status_message: String::new()
+                status_message: String::new(),
+                modsfolder: String::from("C:/Program Files (x86)/Steam/steamapps/common/My Hero Ultra Rumble/HerovsGame/Content/Paks/Mods")
             }))
 
         })
