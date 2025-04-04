@@ -15,21 +15,26 @@ use std::io::Write;
 
 use serde::{Deserialize, Serialize};
 
+use reqwest;
+
 
 struct HeroPak {
     filepath: String,
     package_name: String,
     status_message: String,
+    change_notes: String,
     modsfolder: String,
     show_settings: bool,
     automatically_move_pak: bool,
     config: Config,
+    current_version: i32
 }
 
 #[derive(Serialize, Deserialize)]
 struct Config {
     modsfolder: String,
     automatically_move_pak: bool,
+    last_version_used: i32
 }
 
 impl Config {
@@ -56,11 +61,32 @@ impl Default for Config {
         Self {
             modsfolder: String::from("C:/Program Files (x86)/Steam/steamapps/common/My Hero Ultra Rumble/HerovsGame/Content/Paks/Mods"),
             automatically_move_pak: false,
+            last_version_used: 0
         }
     }
 }
 
 impl HeroPak {
+
+    async fn fetch_change_notes(&mut self) {
+        let url = "https://raw.githubusercontent.com/bsly86/mhur_packer/main/change_notes.md";
+        match reqwest::get(url).await {
+            Ok(response) => {
+                if response.status().is_success() {
+                    if let Ok(text) = response.text().await {
+                        self.change_notes = text;
+                    } else {
+                        self.change_notes = "Failed to parse change notes.".to_string();
+                    }
+                } else {
+                    self.change_notes = format!("Failed to fetch change notes:\n{}", response.status());
+                }
+            }
+            Err(e) => {
+                self.change_notes = format!("failed to fetch change notes:\n{}", e);
+            }
+        }
+    }
     
     fn execute_repak(&mut self, command: &str, args: &[&str]) -> Result<String, String> {
         let exe_dir = env::current_exe()
@@ -97,10 +123,35 @@ impl HeroPak {
 impl eframe::App for HeroPak {
     fn update(&mut self, ctx: &egui::Context, _frame: &mut Frame) {
 
+        if self.config.last_version_used < self.current_version && self.status_message.is_empty() {
+            let runtime = tokio::runtime::Runtime::new().unwrap();
+            runtime.block_on(self.fetch_change_notes());
+        }
+
+        if self.config.last_version_used < self.current_version {
+            egui::Window::new("Change Log")
+                .open(&mut true)
+                .show(ctx, |ui| {
+                    ui.heading("Version 1.3.2 Changes");
+                    ui.label(&self.change_notes);
+
+                    ui.add_space(8.0);
+
+                    if ui.button("Close").clicked() {
+                        self.config.last_version_used = self.current_version;
+                        self.config.save();
+                    }
+                });
+        }
+
+
+
         CentralPanel::default().show(ctx, |ui| {
             if ui.button("⚙").clicked() {
                 self.show_settings = !self.show_settings
             }
+
+        
 
 
             egui::Window::new("Settings")
@@ -123,8 +174,13 @@ impl eframe::App for HeroPak {
                     self.config.save();
                 }
 
+                let major = self.current_version / 100;
+                let minor = (self.current_version / 10) % 10;
+                let patch = self.current_version % 10;
+
+
                 ui.add_space(8.0);
-                ui.label("version 1.3.1");
+                ui.label(format!("version {}.{}.{}", major, minor, patch));
             });
         
             
@@ -279,10 +335,12 @@ fn main() -> eframe::Result<(), eframe::Error> {
                 filepath: String::new(),
                 package_name: String::new(),
                 status_message: String::new(),
+                change_notes: String::new(),
                 modsfolder: config.modsfolder.clone(),
                 show_settings: false,
                 automatically_move_pak: config.automatically_move_pak,
                 config,
+                current_version: 132
             }))
 
         })
