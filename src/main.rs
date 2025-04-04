@@ -124,7 +124,7 @@ impl eframe::App for HeroPak {
                 }
 
                 ui.add_space(8.0);
-                ui.label("version 1.3.0");
+                ui.label("version 1.3.1");
             });
         
             
