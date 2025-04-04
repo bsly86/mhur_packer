@@ -1,4 +1,4 @@
-name: Rust
+name: Rust Build & Release
 
 on:
   push:
@@ -14,12 +14,51 @@ jobs:
     runs-on: windows-latest
 
     steps:
-    - uses: actions/checkout@v4
-    - name: Build
+    - name: Checkout Repository
+      uses: actions/checkout@v4
+
+    - name: Cache Cargo dependencies
+      uses: actions/cache@v4
+      with:
+        path: |
+          ~/.cargo/registry
+          ~/.cargo/git
+          target
+        key: rust-${{ runner.os }}-${{ hashFiles('**/Cargo.lock') }}
+        restore-keys: |
+          rust-${{ runner.os }}-
+
+    - name: Install Rust (stable)
+      uses: dtolnay/rust-toolchain@stable
+
+    - name: Build Project
       run: cargo build --release --verbose
-    - name: Run tests
+
+    - name: Run Tests
       run: cargo test --verbose
-    - name: Release 
+
+    - name: Upload Build Artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: MyHeroPak
+        path: target/release/MyHeroPak.exe
+
+  release:
+    needs: build
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: windows-latest
+
+    steps:
+    - name: Checkout Repository
+      uses: actions/checkout@v4
+
+    - name: Download Build Artifact
+      uses: actions/download-artifact@v4
+      with:
+        name: MyHeroPak
+        path: target/release
+
+    - name: Create GitHub Release
       uses: softprops/action-gh-release@v2
       with:
         files: target/release/MyHeroPak.exe

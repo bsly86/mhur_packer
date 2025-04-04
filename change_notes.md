@@ -1,0 +1,5 @@
+- Added change notes feature. Hi.
+- Changes prior to ver 1.3.2:
+  - New Settings panel
+    - Shows current version, allows you to specify the location of your mods folder, and added functionality to automatically move generated paks to specified mod folder.
+  - Default viewport size is now 500 x 300
