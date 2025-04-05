@@ -1,5 +1,3 @@
-#![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
-
 use eframe::*;
 use egui::CentralPanel;
 use egui::Layout;
@@ -16,6 +14,7 @@ use std::io::Write;
 use serde::{Deserialize, Serialize};
 
 use reqwest;
+use chrono;
 
 
 struct HeroPak {
@@ -69,7 +68,8 @@ impl Default for Config {
 impl HeroPak {
 
     async fn fetch_change_notes(&mut self) {
-        let url = "https://raw.githubusercontent.com/bsly86/mhur_packer/main/change_notes.md";
+        let timestamp = chrono::Utc::now().timestamp();
+        let url = format!("https://raw.githubusercontent.com/bsly86/mhur_packer/main/change_notes.md?ts={}", timestamp);
         match reqwest::get(url).await {
             Ok(response) => {
                 if response.status().is_success() {
@@ -132,7 +132,7 @@ impl eframe::App for HeroPak {
             egui::Window::new("Change Log")
                 .open(&mut true)
                 .show(ctx, |ui| {
-                    ui.heading("Version 1.3.2 Changes");
+                    ui.heading("Version 1.3.3 Changes");
                     ui.label(&self.change_notes);
 
                     ui.add_space(8.0);
@@ -340,7 +340,7 @@ fn main() -> eframe::Result<(), eframe::Error> {
                 show_settings: false,
                 automatically_move_pak: config.automatically_move_pak,
                 config,
-                current_version: 132
+                current_version: 133
             }))
 
         })
