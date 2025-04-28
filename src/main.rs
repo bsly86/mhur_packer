@@ -346,7 +346,7 @@ fn main() -> eframe::Result<(), eframe::Error> {
                 show_settings: false,
                 automatically_move_pak: config.automatically_move_pak,
                 config,
-                current_version: 133
+                current_version: 200
             }))
 
         })

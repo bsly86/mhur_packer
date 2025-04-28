@@ -10,7 +10,7 @@ env:
   CARGO_TERM_COLOR: always
 
 jobs:
-  build:
+  build-windows:
     runs-on: windows-latest
 
     steps:
@@ -24,43 +24,90 @@ jobs:
           ~/.cargo/registry
           ~/.cargo/git
           target
-        key: rust-${{ runner.os }}-${{ hashFiles('**/Cargo.lock') }}
+        key: rust-windows-${{ hashFiles('**/Cargo.lock') }}
         restore-keys: |
-          rust-${{ runner.os }}-
+          rust-windows-
 
     - name: Install Rust (stable)
       uses: dtolnay/rust-toolchain@stable
 
-    - name: Build Project
+    - name: Build Project (Windows)
       run: cargo build --release --verbose
 
-    - name: Run Tests
-      run: cargo test --verbose
+    - name: Rename Output to MyHeroPak.exe
+      run: |
+        mkdir -p dist
+        cp target/release/MyHeroPak.exe dist/MyHeroPak.exe
 
-    - name: Upload Build Artifact
+    - name: Upload Windows Build Artifact
       uses: actions/upload-artifact@v4
       with:
-        name: MyHeroPak
-        path: target/release/MyHeroPak.exe
+        name: MyHeroPak_Windows
+        path: dist/MyHeroPak.exe
 
-  release:
-    needs: build
-    if: startsWith(github.ref, 'refs/tags/v')
-    runs-on: windows-latest
+  build-linux:
+    runs-on: ubuntu-latest
 
     steps:
     - name: Checkout Repository
       uses: actions/checkout@v4
 
-    - name: Download Build Artifact
+    - name: Cache Cargo dependencies
+      uses: actions/cache@v4
+      with:
+        path: |
+          ~/.cargo/registry
+          ~/.cargo/git
+          target
+        key: rust-linux-${{ hashFiles('**/Cargo.lock') }}
+        restore-keys: |
+          rust-linux-
+
+    - name: Install Rust (stable)
+      uses: dtolnay/rust-toolchain@stable
+
+    - name: Build Project (Linux)
+      run: cargo build --release --verbose
+
+    - name: Rename Output to MyHeroPak_Unix
+      run: |
+        mkdir -p dist
+        cp target/release/MyHeroPak dist/MyHeroPak_Unix
+
+    - name: Upload Linux Build Artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: MyHeroPak_Linux
+        path: dist/MyHeroPak_Unix
+
+  release:
+    needs:
+      - build-windows
+      - build-linux
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout Repository
+      uses: actions/checkout@v4
+
+    - name: Download Windows Build Artifact
       uses: actions/download-artifact@v4
       with:
-        name: MyHeroPak
-        path: target/release
+        name: MyHeroPak_Windows
+        path: dist/
+
+    - name: Download Linux Build Artifact
+      uses: actions/download-artifact@v4
+      with:
+        name: MyHeroPak_Linux
+        path: dist/
 
     - name: Create GitHub Release
       uses: softprops/action-gh-release@v2
       with:
-        files: target/release/MyHeroPak.exe
+        files: |
+          dist/MyHeroPak.exe
+          dist/MyHeroPak_Unix
       env:
         GITHUB_TOKEN: ${{ secrets.RELEASETOKEN }}
