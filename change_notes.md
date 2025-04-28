@@ -1,1 +1,1 @@
-- Undid a change that hid the console window; it caused odd performance issues which made the experience less enjoyable.
+- Cross platform support (app now builds on Linux.)

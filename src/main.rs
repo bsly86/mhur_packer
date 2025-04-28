@@ -94,7 +94,13 @@ impl HeroPak {
             .and_then(|path| path.parent().map(|p| p.to_path_buf()))
             .unwrap_or_else(|| Path::new(".").to_path_buf());
 
-        let local_repak_path = exe_dir.join("repak.exe");
+        let repak_filename = if cfg!(target_os = "windows") {
+            "repak.exe"
+        } else {
+            "repak"
+        };
+        let local_repak_path = exe_dir.join(repak_filename);
+            
         let repak_command = if local_repak_path.exists() {
             local_repak_path
         } else {
