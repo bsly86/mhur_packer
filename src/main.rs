@@ -138,7 +138,7 @@ impl eframe::App for HeroPak {
             egui::Window::new("Change Log")
                 .open(&mut true)
                 .show(ctx, |ui| {
-                    ui.heading("Version 2.0.1 Changes");
+                    ui.heading("Version 2.0.2 Changes");
                     ui.label(&self.change_notes);
 
                     ui.add_space(8.0);
@@ -346,7 +346,7 @@ fn main() -> eframe::Result<(), eframe::Error> {
                 show_settings: false,
                 automatically_move_pak: config.automatically_move_pak,
                 config,
-                current_version: 200
+                current_version: 202
             }))
 
         })
