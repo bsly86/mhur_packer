@@ -1,7 +1,7 @@
 # mhur_packer
 Barebones frontend for repak that I made for modding My Hero Ultra Rumble -- all this does is let you reference a root folder and then generate a .pak file, and rename it to whatever you set the PackageName to.  
 
-This will receive very little to no maintenance, as it's mainly a personal tool that I wanted to share due to no open-source alternatives being available for MHUR specifically.
+This tool is EOL, I have no desire to add more functionality (how much does it really need?) unless a wonderful idea or a terrible bug appears.
 
 # Dependencies
 [repak](https://github.com/trumank/repak) - responsible for packaging assets into a .pak file.
